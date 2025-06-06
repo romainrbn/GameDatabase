@@ -10,15 +10,51 @@ import SwiftUI
 
 @Observable
 final class ContentViewModel {
-    var character: GameCharacter?
+    var characterDTO: GameCharacterDTO?
+    var isLoading = false
+    var error: Error?
 
-    func performFetch(with client: IGDBClient) async throws {
-        self.character = try await client.query(endpoint: Endpoints.Character.path) { builder in
-            builder
-                .fields { [$0.name, $0.description, $0.games ]}
-                .where { $0.name == "Arthur Morgan" }
-                .limit(1)
+    func fetchCharacter(named characterName: String, using client: IGDBClient) async {
+        isLoading = true
+        error = nil
+
+        do {
+            characterDTO = try await GameCharacterDTO.fetch(byName: characterName, using: client)
+        } catch {
+            self.error = error
         }
-        .first
+
+        isLoading = false
+    }
+
+    func fetchCharacter(withID id: Int, using client: IGDBClient) async {
+        isLoading = true
+        error = nil
+
+        do {
+            characterDTO = try await GameCharacterDTO.fetch(byID: id, using: client)
+        } catch {
+            self.error = error
+        }
+
+        isLoading = false
+    }
+}
+
+extension ContentViewModel {
+    var characterName: String {
+        characterDTO?.character?.name ?? "Unknown"
+    }
+
+    var characterDescription: String {
+        characterDTO?.character?.description ?? "No description available"
+    }
+
+    var mugshotImageID: String? {
+        characterDTO?.mugshot?.imageID
+    }
+
+    var gamesWithArtwork: [GameWithArtwork] {
+        characterDTO?.games ?? []
     }
 }

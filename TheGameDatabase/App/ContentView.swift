@@ -11,32 +11,104 @@ struct ContentView: View {
     @Environment(\.dbClient) var dbClient
     @Environment(ContentViewModel.self) var viewModel
 
-    @State private var error: Error?
+    @State private var searchText: String = ""
+    @State private var searchTask: Task<Void, Error>?
 
     var body: some View {
-        VStack {
-            if let error {
-                Text("Error! \(error.localizedDescription)")
-                    .font(.headline)
-                    .foregroundStyle(.red)
-            } else if let character = viewModel.character {
-                VStack {
-                    Text(character.name ?? "-")
-                    Text("GameIDs: \(character.games ?? [])")
-                    Text(character.description ?? "-")
+        ScrollView(.vertical) {
+            VStack {
+                searchSection
+                searchButton
+                contentSection
+                loadingIndicator
+            }
+            .padding()
+        }
+        .onDisappear {
+            searchTask?.cancel()
+        }
+    }
+
+    @ViewBuilder
+    private var searchSection: some View {
+        TextField("Search for a character", text: $searchText)
+            .scrollDismissesKeyboard(.interactively)
+    }
+
+    @ViewBuilder
+    private var searchButton: some View {
+        Button("Search") {
+            performSearch()
+        }
+        .disabled(searchText.isEmpty)
+    }
+
+    @ViewBuilder
+    private var contentSection: some View {
+        if let character = viewModel.characterDTO {
+            characterDetails(for: character)
+        } else if let error = viewModel.error {
+            errorView(for: error)
+        }
+    }
+
+    @ViewBuilder
+    private var loadingIndicator: some View {
+        if viewModel.isLoading {
+            ProgressView()
+        }
+    }
+
+    @ViewBuilder
+    private func characterDetails(for character: GameCharacterDTO) -> some View {
+        VStack(spacing: 12) {
+            HStack {
+                if let mugshot = character.mugshot, let imageID = mugshot.imageID {
+                    image(for: imageID, size: 150)
                 }
-            } else {
-                ProgressView()
+
+                if let artork = character.games.first?.artworks.first, let imageID = artork.imageID {
+                    image(for: imageID, size: 150)
+                }
             }
+
+            Text(character.character?.name ?? "-")
+                .font(.title)
+
+            Text(character.character?.description ?? "-")
+                .font(.subheadline)
+                .multilineTextAlignment(.center)
+                .italic()
         }
-        .task {
-            do {
-                try await viewModel.performFetch(with: dbClient)
-            } catch {
-                self.error = error
-            }
+    }
+
+    @ViewBuilder
+    private func errorView(for error: Error) -> some View {
+        Text("Error! \(error.localizedDescription)")
+            .font(.headline)
+            .foregroundStyle(.red)
+    }
+
+    private func performSearch() {
+        if searchTask?.isCancelled == false {
+            searchTask?.cancel()
         }
-        .padding()
+
+        searchTask = Task {
+            try Task.checkCancellation()
+            await viewModel.fetchCharacter(named: searchText, using: dbClient)
+        }
+    }
+
+    private func image(for resourceID: String, size: CGFloat = 50) -> some View {
+        AsyncImage(url: ImageBuilder.imageURL(for: resourceID)) { image in
+            image
+                .resizable()
+                .scaledToFill()
+                .frame(width: size, height: size)
+        } placeholder: {
+            ProgressView()
+        }
     }
 }
 

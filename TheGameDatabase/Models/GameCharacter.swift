@@ -10,6 +10,9 @@ import Query
 
 @QueryableModel
 struct GameCharacter: Decodable, Queryable {
+    @Field(key: "id")
+    var id: Int?
+
     @Field(key: "akas")
     var akas: [String]?
 
@@ -48,4 +51,37 @@ struct GameCharacter: Decodable, Queryable {
 
     @Field(key: "url")
     var url: String?
+}
+
+@QueryableModel
+struct Game: Decodable, Queryable {
+    @Field(key: "id")
+    var id: Int?
+
+    @Field(key: "name")
+    var name: String?
+
+    @Field(key: "summary")
+    var summary: String?
+
+    @Field(key: "artworks")
+    var artworks: [Int]?
+
+    @Field(key: "cover")
+    var cover: Int?
+
+    @Field(key: "first_release_date")
+    var firstReleaseDate: Int?
+}
+
+@QueryableModel
+struct Artwork: Decodable, Queryable {
+    @Field(key: "id")
+    var id: Int?
+
+    @Field(key: "image_id")
+    var imageID: String?
+
+    @Field(key: "game")
+    var game: Int?
 }

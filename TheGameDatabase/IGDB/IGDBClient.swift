@@ -6,6 +6,9 @@
 //
 
 import Foundation
+import OSLog
+
+private let logger = Logger(subsystem: "com.romainrbn.TheGameDatabase", category: "WS")
 
 enum IGDBError: Error {
     case invalidURL
@@ -70,6 +73,9 @@ final class IGDBClient {
         request.httpBody = body.data(using: .utf8)
 
         let (data, response) = try await session.data(for: request)
+
+        logger.debug("Made WS Request to URL: \(request.url?.absoluteString ?? "-")")
+
         guard (response as? HTTPURLResponse)?.statusCode ?? 500 < 300 else {
             throw IGDBError.invalidResponse
         }
